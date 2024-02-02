@@ -16,3 +16,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Downloading OWASP Dependency Check
+        run: wget https://github.com/jeremylong/DependencyCheck/releases/download/v6.2.2/dependency-check-6.2.2-release.zip
+      - name: Unzipping and installing
+        run: unzip dependency-check-6.2.2-release.zip && ls -l dependency-check/bin/dependency-check.sh -s .
