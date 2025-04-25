@@ -11,6 +11,6 @@
           uses: zaproxy/action-baseline@v0.6.1
           with:
            docker_name: 'zaproxy/zap-stable'
-           target: http://localhost:8080/onlinebookstore/
+           target: https://demo.testfire.net/login.jsp
            rules_file_name: '.zap/rules.tsv'
            cmd_options: '-a'
