@@ -19,39 +19,27 @@ jobs:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
 
-     # 3. Run JArchitect analysis
-      - name: Run JArchitect analysis
+      - name: Download and unzip JArchitect with retry
         run: |
-          curl -L https://download.jarchitect.com/jarchitect-cli-latest.zip -o jarchitect.zip
+          # Retry logic for downloading JArchitect
+          attempt=0
+          max_attempts=5
+          until [ $attempt -ge $max_attempts ]
+          do
+            curl -L https://download.jarchitect.com/jarchitect-cli-latest.zip -o jarchitect.zip && break
+            attempt=$((attempt+1))
+            echo "Attempt $attempt failed, retrying in 5 seconds..."
+            sleep 5
+          done
           unzip jarchitect.zip
           ./jarchitect-cli/bin/jarchitect --analyze --project your-java-project-directory
 
-      # 4. Generate architecture diagram
       - name: Generate architecture diagram
         run: |
           ./jarchitect-cli/bin/jarchitect --generate-diagrams
 
-      # 5. Upload JArchitect reports (Architecture diagrams and other analysis reports)
       - name: Upload JArchitect reports
         uses: actions/upload-artifact@v4
         with:
           name: jarchitect-reports
           path: ./reports/
-
-      # 6. Download ThreatAgile tool
-      - name: Download ThreatAgile
-        run: |
-          curl -L https://github.com/threagile/threagile/releases/latest/download/threagile-linux -o threagile
-          chmod +x threagile
-
-      # 7. Run ThreatAgile to perform threat modeling
-      - name: Run ThreatAgile analysis
-        run: |
-          ./threagile --input ./reports/architecture.yaml --output ./threagile-reports/
-
-      # 8. Upload ThreatAgile threat reports
-      - name: Upload ThreatAgile threat reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: threagile-reports
-          path: ./threagile-reports/
