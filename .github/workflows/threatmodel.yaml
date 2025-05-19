@@ -49,11 +49,10 @@ jobs:
           mv xx00 architecture.md
           tail -n +2 xx01 | sed '/```/d' > diagram.puml
 
-      - name: Generate diagram (optional)
-        uses: grassedge/generate-plantuml-action@v1
+      - name: Generate diagram (PlantUML)
+        uses: plantuml-action/plantuml-action@main
         with:
-          plantuml_file: diagram.puml
-          output_format: png
+          args: -tpng diagram.puml
 
       - name: Upload diagram as artifact
         uses: actions/upload-artifact@v3
