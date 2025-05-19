@@ -19,19 +19,29 @@ jobs:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
 
-      - name: Run JavaParser (Custom Step)
+      - name: Download JavaParser JAR
         run: |
-          # Write a script to parse code and output architecture.json or YAML
-          java -jar your-javaparser-wrapper.jar > architecture.yaml
+          curl -L https://repo1.maven.org/maven2/com/github/javaparser/javaparser-core/3.25.4/javaparser-core-3.25.4.jar -o javaparser-core.jar
 
-      - name: Run Threagile
+      # 4. Run JavaParser to parse the Java code and generate architecture.yaml
+      - name: Generate architecture.yaml using JavaParser
+        run: |
+          java -cp javaparser-core.jar com.github.javaparser.StaticJavaParser parse src/**/*.java > architecture.yaml
+          
+      # 5. Download Threagile
+      - name: Download Threagile
         run: |
           curl -L https://github.com/threagile/threagile/releases/latest/download/threagile-linux -o threagile
           chmod +x threagile
+
+      # 6. Run Threagile on the generated architecture.yaml
+      - name: Run Threagile
+        run: |
           ./threagile --input architecture.yaml --output output/
 
+      # 7. Upload the generated threat report
       - name: Upload Threat Report
         uses: actions/upload-artifact@v4
         with:
-         name: threat-model-report
-         path: output/
+          name: threagile-report
+          path: output/
