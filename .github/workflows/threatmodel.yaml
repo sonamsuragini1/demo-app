@@ -1,0 +1,54 @@
+name: AI-Based Architecture Generator
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate-architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Extract file structure (for context)
+        run: |
+          tree -J -L 3 > structure.json
+          find . -name "*.java" | xargs cat > all_java_code.txt
+
+      - name: Generate architecture using OpenAI
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          REQUEST=$(jq -n --arg code "$(head -c 30000 all_java_code.txt)" --arg structure "$(cat structure.json)" '{
+            "model": "gpt-4",
+            "messages": [
+              {"role": "system", "content": "You are a software architect."},
+              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md and a PlantUML diagram.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
+            ]
+          }')
+
+          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST")
+
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > ai_output.md
+
+      - name: Split AI Output
+        run: |
+          csplit -z ai_output.md '/```plantuml/' '{*}' || true
+          mv xx00 architecture.md
+          tail -n +2 xx01 | sed '/```/d' > diagram.puml
+
+      - name: Generate diagram (optional)
+        uses: grassedge/generate-plantuml-action@v1
+        with:
+          plantuml_file: diagram.puml
+          output_format: png
+
+      - name: Upload diagram as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: architecture-diagram
+          path: diagram.png
