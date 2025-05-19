@@ -19,56 +19,19 @@ jobs:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
 
-      - name: Extract file structure and code
+      - name: Run JavaParser (Custom Step)
         run: |
-          sudo apt-get install tree -y
-          tree -J -L 3 > structure.json
-          find . -name "*.java" | xargs cat > all_java_code.txt
+          # Write a script to parse code and output architecture.json or YAML
+          java -jar your-javaparser-wrapper.jar > architecture.yaml
 
-      - name: Generate architecture using OpenAI
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Run Threagile
         run: |
-          REQUEST=$(jq -n --arg code "$(head -c 30000 all_java_code.txt)" --arg structure "$(cat structure.json)" '{
-            "model": "gpt-4",
-            "messages": [
-              {"role": "system", "content": "You are a software architect."},
-              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md file and a PlantUML diagram inside code blocks.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
-            ]
-          }')
+          curl -L https://github.com/threagile/threagile/releases/latest/download/threagile-linux -o threagile
+          chmod +x threagile
+          ./threagile --input architecture.yaml --output output/
 
-          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "$REQUEST")
-
-          echo "$RESPONSE" | jq -r '.choices[0].message.content' > ai_output.md
-
-      - name: Debug:Show AI output
-        run: cat ai_output.md
-
-      - name: Extract diagram.puml from AI output
-        run: |
-          awk '/```plantuml/,/```/' ai_output.md | sed '1d;$d' > diagram.puml
-
-      - name: Validate diagram or fallback
-        run: |
-          if ! grep -q "@startuml" diagram.puml; then
-            echo "No valid PlantUML diagram found. Using fallback diagram."
-            echo "@startuml" > diagram.puml
-            echo "Alice -> Bob : Hello World" >> diagram.puml
-            echo "@enduml" >> diagram.puml
-          fi
-
-      - name: Generate PNG from diagram
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace plantuml/plantuml diagram.puml
-
-      - name: Upload architecture artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Threat Report
+        uses: actions/upload-artifact@v3
         with:
-          name: ai-architecture-output
-          path: |
-            ai_output.md
-            diagram.puml
-            diagram.png
+          name: threat-model-report
+          path: output/
