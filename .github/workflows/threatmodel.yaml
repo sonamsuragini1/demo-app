@@ -19,27 +19,27 @@ jobs:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
 
-      - name: Download and unzip JArchitect with retry
+      - name: Extract code dependencies using JavaParser
         run: |
-          # Retry logic for downloading JArchitect
-          attempt=0
-          max_attempts=5
-          until [ $attempt -ge $max_attempts ]
-          do
-            curl -L https://download.jarchitect.com/jarchitect-cli-latest.zip -o jarchitect.zip && break
-            attempt=$((attempt+1))
-            echo "Attempt $attempt failed, retrying in 5 seconds..."
-            sleep 5
-          done
-          unzip jarchitect.zip
-          ./jarchitect-cli/bin/jarchitect --analyze --project your-java-project-directory
-
-      - name: Generate architecture diagram
+          curl -L https://github.com/javaparser/javaparser/releases/download/v3.24.1/javaparser-core-3.24.1.jar -o javaparser-core.jar
+          # Use a script or tool that extracts class/method relationships from your Java code
+          java -cp javaparser-core.jar com.github.javaparser.StaticJavaParser parse src/**/*.java > architecture.yaml
+          
+      # 3. Convert architecture.yaml (or similar output) into a PlantUML DFD
+      - name: Generate DFD from architecture.yaml
         run: |
-          ./jarchitect-cli/bin/jarchitect --generate-diagrams
+          # Example conversion step. This can be customized to parse the architecture.yaml and create a PlantUML file
+          python3 generate_dfd_from_yaml.py architecture.yaml > dfd.puml
 
-      - name: Upload JArchitect reports
+      # 4. Generate the DFD image using PlantUML
+      - name: Generate DFD diagram using PlantUML
+        run: |
+          curl -L https://github.com/plantuml/plantuml/releases/download/v1.2023.5/plantumlt.1.2023.5.jar -o plantuml.jar
+          java -jar plantuml.jar dfd.puml
+
+      # 5. Upload the DFD image as an artifact
+      - name: Upload DFD diagram as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jarchitect-reports
-          path: ./reports/
+          name: dfd-diagram
+          path: dfd.png
