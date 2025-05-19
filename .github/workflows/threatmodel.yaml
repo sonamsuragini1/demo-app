@@ -49,10 +49,10 @@ jobs:
           mv xx00 architecture.md
           tail -n +2 xx01 | sed '/```/d' > diagram.puml
 
-      - name:  Generate PlantUML Diagram
-        uses: holowinski/plantuml-github-action@main
-        with:
-          args: -tpng diagram.puml
+      - name: Generate PlantUML diagram
+        run: |
+         docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace plantuml/plantuml -tpng diagram.puml
+
 
       - name: Upload diagram as artifact
         uses: actions/upload-artifact@v4
