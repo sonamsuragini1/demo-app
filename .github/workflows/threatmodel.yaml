@@ -19,8 +19,9 @@ jobs:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
 
-      - name: Extract file structure (for context)
+      - name: Extract file structure and code
         run: |
+          sudo apt-get install tree -y
           tree -J -L 3 > structure.json
           find . -name "*.java" | xargs cat > all_java_code.txt
 
@@ -32,7 +33,7 @@ jobs:
             "model": "gpt-4",
             "messages": [
               {"role": "system", "content": "You are a software architect."},
-              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md file and a PlantUML diagram.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
+              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md file and a PlantUML diagram inside code blocks.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
             ]
           }')
 
@@ -46,32 +47,28 @@ jobs:
       - name: Debug:Show AI output
         run: cat ai_output.md
 
-      - name: Extract architecture.md
-        run: |
-          awk '!/```plantuml/,/```plantuml/' ai_output.md > architecture.md || true
-
       - name: Extract diagram.puml from AI output
         run: |
-          awk '/```plantuml/,/```/ { if (!/```/) print }' ai_output.md > diagram.puml
+          awk '/```plantuml/,/```/' ai_output.md | sed '1d;$d' > diagram.puml
 
-      - name: Fallback dummy diagram if AI fails
+      - name: Validate diagram or fallback
         run: |
           if ! grep -q "@startuml" diagram.puml; then
-            echo "@startuml\nAlice -> Bob: Test\n@enduml" > diagram.puml
+            echo "No valid PlantUML diagram found. Using fallback diagram."
+            echo "@startuml" > diagram.puml
+            echo "Alice -> Bob : Hello World" >> diagram.puml
+            echo "@enduml" >> diagram.puml
           fi
 
-      - name: Debug:Show diagram.puml content
-        run: cat diagram.puml
-
-      - name: Generate diagram using PlantUML Docker
+      - name: Generate PNG from diagram
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace plantuml/plantuml -tpng diagram.puml
+          docker run --rm -v ${{ github.workspace }}:/workspace plantuml/plantuml diagram.puml
 
-      - name: List files after generation
-        run: ls -al
-
-      - name: Upload diagram as artifact
+      - name: Upload architecture artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: architecture-diagram
-          path: diagram.png
+          name: ai-architecture-output
+          path: |
+            ai_output.md
+            diagram.puml
+            diagram.png
