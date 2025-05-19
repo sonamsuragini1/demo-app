@@ -49,8 +49,8 @@ jobs:
           mv xx00 architecture.md
           tail -n +2 xx01 | sed '/```/d' > diagram.puml
 
-      - name: Generate diagram (PlantUML)
-        uses: plantuml-action/plantuml-action@main
+      - name:  Generate PlantUML Diagram
+        uses: holowinski/plantuml-github-action@main
         with:
           args: -tpng diagram.puml
 
