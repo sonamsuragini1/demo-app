@@ -32,7 +32,7 @@ jobs:
             "model": "gpt-4",
             "messages": [
               {"role": "system", "content": "You are a software architect."},
-              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md and a PlantUML diagram.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
+              {"role": "user", "content": "Based on this Java project structure and code, generate an architecture.md file and a PlantUML diagram.\n\nStructure:\n\($structure)\n\nCode:\n\($code)"}
             ]
           }')
 
@@ -43,16 +43,32 @@ jobs:
 
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > ai_output.md
 
-      - name: Split AI Output
-        run: |
-          csplit -z ai_output.md '/```plantuml/' '{*}' || true
-          mv xx00 architecture.md
-          tail -n +2 xx01 | sed '/```/d' > diagram.puml
+      - name: Debug: Show AI output
+        run: cat ai_output.md
 
-      - name: Generate PlantUML diagram
+      - name: Extract architecture.md
         run: |
-         docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace plantuml/plantuml -tpng diagram.puml
+          awk '!/```plantuml/,/```plantuml/' ai_output.md > architecture.md || true
 
+      - name: Extract diagram.puml from AI output
+        run: |
+          awk '/```plantuml/,/```/ { if (!/```/) print }' ai_output.md > diagram.puml
+
+      - name: Fallback dummy diagram if AI fails
+        run: |
+          if ! grep -q "@startuml" diagram.puml; then
+            echo "@startuml\nAlice -> Bob: Test\n@enduml" > diagram.puml
+          fi
+
+      - name: Debug: Show diagram.puml content
+        run: cat diagram.puml
+
+      - name: Generate diagram using PlantUML Docker
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace plantuml/plantuml -tpng diagram.puml
+
+      - name: List files after generation
+        run: ls -al
 
       - name: Upload diagram as artifact
         uses: actions/upload-artifact@v4
