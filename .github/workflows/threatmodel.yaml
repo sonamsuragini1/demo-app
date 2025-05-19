@@ -18,28 +18,15 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu' # Alternative distribution options are available
-
-      - name: Extract code dependencies using JavaParser
+      
+      - name: Generate DFD from architecture description
         run: |
-          curl -L https://github.com/javaparser/javaparser/releases/download/v3.24.1/javaparser-core-3.24.1.jar -o javaparser-core.jar
-          # Use a script or tool that extracts class/method relationships from your Java code
-          java -cp javaparser-core.jar com.github.javaparser.StaticJavaParser parse src/**/*.java > architecture.yaml
-          
-      # 3. Convert architecture.yaml (or similar output) into a PlantUML DFD
-      - name: Generate DFD from architecture.yaml
-        run: |
-          # Example conversion step. This can be customized to parse the architecture.yaml and create a PlantUML file
-          python3 generate_dfd_from_yaml.py architecture.yaml > dfd.puml
+          # Here you would generate a description file using the parser
+          # Example: architecture.md for Mermaid.js or architecture.puml for PlantUML
+          python3 generate_dfd_from_code.py src/**/*.java > architecture.md  # This can be a custom script
 
-      # 4. Generate the DFD image using PlantUML
-      - name: Generate DFD diagram using PlantUML
+      - name: Generate DFD diagram using Mermaid.js
         run: |
-          curl -L https://github.com/plantuml/plantuml/releases/download/v1.2023.5/plantumlt.1.2023.5.jar -o plantuml.jar
-          java -jar plantuml.jar dfd.puml
-
-      # 5. Upload the DFD image as an artifact
-      - name: Upload DFD diagram as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dfd-diagram
-          path: dfd.png
+          curl -L https://github.com/mermaid-js/mermaid/releases/download/v10.0.0/mermaid.cli-linux-x64.tar.gz -o mermaid-cli.tar.gz
+          tar -xzvf mermaid-cli.tar.gz
+          ./bin/mermaid architecture.md -o dfd.png
