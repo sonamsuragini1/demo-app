@@ -43,7 +43,7 @@ jobs:
 
           echo "$RESPONSE" | jq -r '.choices[0].message.content' > ai_output.md
 
-      - name: Debug: Show AI output
+      - name: Debug:Show AI output
         run: cat ai_output.md
 
       - name: Extract architecture.md
