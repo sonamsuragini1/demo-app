@@ -60,7 +60,7 @@ jobs:
             echo "@startuml\nAlice -> Bob: Test\n@enduml" > diagram.puml
           fi
 
-      - name: Debug: Show diagram.puml content
+      - name: Debug:Show diagram.puml content
         run: cat diagram.puml
 
       - name: Generate diagram using PlantUML Docker
